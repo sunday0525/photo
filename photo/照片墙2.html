@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8" />
+	<title>Document</title>
+	<style type="text/css">
+		* {
+			margin: 0;
+			padding: 0;
+		}
+		ul {
+			list-style: none;
+		}
+		img {
+			vertical-align: middle;
+		}
+		#wrap {
+			width: 560px;
+			height: 560px;
+			border: 1px solid #02A4C7;
+			margin: 10px auto;
+			position: relative;
+		}
+		#wrap li {
+			float: left;
+			width: 114px;
+			height: 114px;
+			border: 3px dashed transparent;
+			margin: 10px;
+			
+		}
+		#wrap .active {
+			border: 3px dashed #1E90FF;	
+		}
+		#wrap img {
+			width: 100%;
+			height: 100%;
+		}
+	</style>
+</head>
+<body>
+	<ul id="wrap">
+		<li><img src="img/1.jpg" alt="" /></li>
+		<li><img src="img/2.jpg" alt="" /></li>
+		<li><img src="img/3.jpg" alt="" /></li>
+		<li><img src="img/4.jpg" alt="" /></li>
+		<li><img src="img/5.jpg" alt="" /></li>
+		<li><img src="img/6.jpg" alt="" /></li>
+		<li><img src="img/7.jpg" alt="" /></li>
+		<li><img src="img/8.jpg" alt="" /></li>
+		<li><img src="img/9.jpg" alt="" /></li>
+		<li><img src="img/10.jpg" alt="" /></li>
+		<li><img src="img/11.jpg" alt="" /></li>
+		<li><img src="img/12.jpg" alt="" /></li>
+		<li><img src="img/13.jpg" alt="" /></li>
+		<li><img src="img/14.jpg" alt="" /></li>
+		<li><img src="img/15.jpg" alt="" /></li>
+		<li><img src="img/16.jpg" alt="" /></li>
+	</ul>
+</body>
+</html>
+<script src="js/move.js" type="text/javascript"></script>
+<script type="text/javascript">
+	var box = document.getElementById('wrap');
+	var pos = [];
+	var childs = box.children;
+	var lis = Array.from(childs);
+
+	
+	
+	lis.forEach(function(item) {
+		pos.push({left:item.offsetLeft,top:item.offsetTop});
+		item.style.left = item.offsetLeft + 'px';
+	    item.style.top = item.offsetTop + 'px'; 
+	});
+	
+	lis.forEach(function(item) {
+	   item.style.margin = 0;
+	   item.style.position = 'absolute';
+	   item.style.zIndex = 1;
+	});
+	
+	for (var i = 0; i < childs.length; i++) {
+		childs[i].index = i;
+	    childs[i].onmousedown = function (ev) {
+	    	var _this = this;
+	    	var near = -1;
+	        var disX = ev.pageX - _this.offsetLeft;
+	        var disY = ev.pageY - _this.offsetTop;
+	    	_this.style.zIndex = 99;
+	        document.onmousemove = function (ev) {
+	        	_this.style.top = ev.pageY - disY + 'px';
+	        	_this.style.left = ev.pageX - disX + 'px';
+	            near = fnNear(_this);
+	            lis.forEach(function(item) {
+	        	    item.className = '';
+	        	})
+	            if(near >= 0){ //找出与其碰撞且距离最近的li并给予样式
+	            	
+	            	lis[near].className = 'active';
+	            }
+	        }
+	        document.onmouseup = function() {
+	        	if(near >= 0){
+	        		lis[near].className = '';
+	        		
+	        		//改变元素节点的位置，把当前的li插入与其碰撞且距离最近的li的后面，把改变后的li，重新排序，即重新放入页面中
+	        		lis.splice(near,0,lis.splice(_this.index,1)[0]);
+	        		lis.forEach(function(item) {
+	        		    box.appendChild(item);
+	        		});
+	        		//box.insertBefore(_this,childs[near+1]); 
+	        		//方法二：直接操作页面上的节点的顺序，1.需做判断，如果near+1不存在，则用 appendChild(_this)
+	        		//2.如果是当前元素 与它的上一个节点元素交互位置，会有bug，还需加判断，应该不如第一种方法方便
+	        		
+	        		
+	        		
+	        		//每个li的位置重新赋值；  方法一，只改变移动的元素的位置
+	        		var max = Math.max(_this.index,near);
+	        		var min = Math.min(_this.index,near);
+	        		for (var i = min; i <= max; i++) {
+	        		    startMove(childs[i],{left:pos[i].left,top:pos[i].top},function() {
+	        		       _this.style.zIndex = 1;
+	        		    });
+	        		};
+	        		
+//	        		lis.forEach(function(item,i) {  //方法二： 改变所有元素的位置
+//	        		    startMove(childs[i],{left:pos[i].left,top:pos[i].top},function() {
+//	        		       childs[i].style.zIndex = 1;
+//	        		    });
+//	        		})
+//	        		
+	        		
+	        		//改变每个li的索引值，否则索引会是初始的索引，会出错
+	        		lis.forEach(function (item,i) {
+	        		    childs[i].index = i;
+	        		})
+	        		
+	        	}else{
+	        		startMove(_this,{left:pos[_this.index].left,top:pos[_this.index].top},function() {
+	        		    _this.style.zIndex = 1;
+	        		});
+	        	}
+	            
+	            document.onmousemove = document.onmouseup = null;
+	        }
+	        return false;
+	    }
+	}
+	
+	
+	function fnNear (obj) {
+		var min = 999999;
+		var p = -1;
+		lis.forEach(function(item,i) {
+		    if(fnKnock(item,obj) && item != obj){
+				var x = pos[i].left - obj.offsetLeft;
+				var y = pos[i].top - obj.offsetTop;
+				var r =  Math.sqrt(x*x + y*y);
+				if(min > r){
+					min = r;
+					p = i;
+				}
+			}
+		})
+		return p;	
+	}
+
+	function fnKnock (obj1,obj2) {
+	    var l1 = obj1.offsetLeft;
+	    var t1 = obj1.offsetTop;
+	    var r1 = obj1.offsetLeft + obj1.offsetWidth;
+	    var b1 = obj1.offsetTop + obj1.offsetHeight;
+	    
+	    var l2 = obj2.offsetLeft;
+	    var t2 = obj2.offsetTop;
+	    var r2 = obj2.offsetLeft + obj2.offsetWidth;
+	    var b2 = obj2.offsetTop + obj2.offsetHeight;
+	    
+	    if(l1 > r2 || t1 > b2 || r1 < l2 || b1 < t2){
+	    	return false;
+	    }else{
+	    	return true;
+	    }
+	}
+</script>
